@@ -21,6 +21,16 @@ resource "aws_s3_bucket_public_access_block" "website_bucket_public_access" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "website_bucket_encryption" {
+  bucket = aws_s3_bucket.website_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
 # --- CloudFront OAC ---
 
 resource "aws_cloudfront_origin_access_control" "s3_oac" {
@@ -28,6 +38,36 @@ resource "aws_cloudfront_origin_access_control" "s3_oac" {
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
+}
+
+# --- CloudFront Response Headers ---
+
+resource "aws_cloudfront_response_headers_policy" "security_headers" {
+  name    = "${var.project_name}-security-headers"
+  comment = "Security headers for portfolio site"
+
+  security_headers_config {
+    content_security_policy {
+      override = true
+      content_security_policy = "default-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline';"
+    }
+    frame_options {
+      override = true
+      frame_option = "DENY"
+    }
+    strict_transport_security {
+      override = true
+      sts_policy = "max-age=63072000; includeSubDomains; preload"
+      preload = true
+    }
+    x_content_type_options {
+      override = true
+    }
+    x_xss_protection {
+      override = true
+      protection = "1; mode=block"
+    }
+  }
 }
 
 # --- CloudFront Distribution ---
@@ -57,6 +97,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
 
     viewer_protocol_policy = "redirect-to-https"
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security_headers.id
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
