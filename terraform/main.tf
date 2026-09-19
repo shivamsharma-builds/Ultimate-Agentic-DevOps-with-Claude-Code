@@ -57,15 +57,16 @@ resource "aws_cloudfront_response_headers_policy" "security_headers" {
     }
     strict_transport_security {
       override = true
-      sts_policy = "max-age=63072000; includeSubDomains; preload"
+      access_control_max_age_sec = 63072000
+      include_subdomains = true
       preload = true
     }
-    x_content_type_options {
+    content_type_options {
       override = true
     }
-    x_xss_protection {
+    xss_protection {
       override = true
-      protection = "1; mode=block"
+      protection = true
     }
   }
 }
