@@ -1,2 +1,4 @@
 .terraform
 .claude/settings.local.json
+.claude/agent-memory/
+.claude/deploy.log
